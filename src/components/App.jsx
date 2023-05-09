@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+// import React, { Component, useEffect } from 'react';
 import ImageGallery from './ImageGallery/ImageGallery';
 import Seachbar from './Searchbar/Searchbar';
 import { toast } from 'react-toastify';
@@ -7,105 +7,99 @@ import Button from './Button/Button';
 import Modal from './ModalWindow/ModalWindow';
 import { ToastContainer } from 'react-toastify';
 import Loader from './Loader/Loader';
-import {Container} from './Loader/App.styled.js';
+import { Container } from './Loader/App.styled.js';
 import PropTypes from 'prop-types';
+import { useState, useEffect } from 'react';
 
-export default class App extends Component {
-  state = {
-    artName: '',
-    pictures: [],
-    page: 1,
-    largeImage: '',
-    imgTags: '',
-    error: '',
-    showModal: false,
-    isLoading: false,
-    totalLengh: 0,
+
+export default function App() {
+  const [artName, setArtName] = useState('');
+  const [pictures, setPictures] = useState([]);
+  const [page, setPage] = useState(1);
+  const [largeImage, setLargeImage] = useState('');
+  const [imgTags, setImgTags] = useState('');
+  const [error, setError] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [totalLengh, setTotalLengh] = useState(0);
+  // useEffect(() => {
+  //   window.scrollTo({
+  //     top: document.documentElement.scrollHeight,
+  //     behavior: 'smooth',
+  //   });
+  // }, [artName, page]);
+  const toggleModal = () => {
+    setShowModal(!showModal);
   };
-
-  componentDidUpdate(prevProps, prevState) {
-    const newName = prevState.artName;
-    const oldName = this.state.artName;
-
-    const oldPage = this.state.page;
-    const newPage = prevState.page;
-
-    if (newName !== oldName) {
-      this.fetchPictures();
+  const bigImage = (largeImage = '') => {
+    if (largeImage) {
+      setLargeImage(largeImage);
+      // console.log(largeImage)
     }
-    if (oldPage !== 2 && newPage !== oldPage) {
-      window.scrollTo({
-        top: document.documentElement.scrollHeight,
-        behavior: 'smooth',
-      });
+    toggleModal();
+  };
+  useEffect(() => {
+    if (!artName) {
+      return;
+    };
+    const feachPictures = () => {
+      setIsLoading(true);
+      PixabayApi({artName: artName, page})
+        .then(data => {
+            setPictures(prevPictures => [...prevPictures, ...data])
+            // setPage(prevState => prevState.page + 1);
+            setTotalLengh(data.length);
+            if (page > 1) {
+              window.scrollTo({
+              top: document.documentElement.scrollHeight,
+              behavior: 'smooth',})}
+        })
+        .catch(error => {
+          setError(toast('Picture not found'(error.message))
+          )})
+        .finally(() => setIsLoading(false));
+    };
+    feachPictures();
+  }, [artName, page])
+ 
+  const btnEnable =
+    pictures.length > 0 && !isLoading && error === null && totalLengh > 0;
+
+  const handleFormSubmit = name => {
+    setArtName(name);
+    setPage(1);
+    setPictures([]);
+    setError(null);
+    setImgTags('');
+    setLargeImage('');
+    setTotalLengh(0);
+    setIsLoading(false);
+    };
+    const loadMoreBtnClick = () => {
+      setPage(prevPage => prevPage + 1);
     }
-  }
-  toggleModal = () => {
-    this.setState(state => ({
-      showModal: !state.showModal,
-    }));
-  };
-  bigImage = (largeImage = '') => {
-    this.setState({ largeImage });
-    console.log(largeImage)
-    this.toggleModal();
-  };
-  fetchPictures = () => {
-    const { page, artName } = this.state;
-    const options = {
-      page,
-      artName, };
-    this.setState({ isLoading: true });
+  // console.log(pictures);
 
-    PixabayApi(options)
-      .then(pictures => {
-        this.setState(prevState => ({
-          pictures: [...prevState.pictures, ...pictures],
-          page: prevState.page + 1,
-          totalLengh: pictures.length,
-        }));
-      })
-      .catch(error => this.setState({ error: toast('Picture not found') }))
-      .finally(() => this.setState({ isLoading: false }));
-  };
-  handleFormSubmit = artName => {
-    this.setState({ artName: artName, page: 1, pictures: [], error: null });
-  };
-  render() {
-    const {
-      pictures,
-      isLoading,
-      error,
-      showModal,
-      largeImage,
-      imgTags,
-      totalLengh,
-    } = this.state;
-
-// console.log(this.bigImag())
-    const btnEnable =
-      pictures.length > 0 && !isLoading && error === null && totalLengh > 0;
-
-    return (
-      <Container>
-          <Seachbar  onSubmit={this.handleFormSubmit} />
-          {/* <PixabayApi /> */}
-          {error && <h1>{error}</h1>}
-          <ImageGallery pictures={pictures} bigImage={this.bigImage} />
-            {isLoading && <Loader />}
-            {btnEnable && <Button onClick={this.fetchPictures} />}
-            {showModal && (
-              <Modal showModal={this.bigImage}>
-                  <img src={largeImage} alt={imgTags} />
-              </Modal>
-              )}
-            <ToastContainer position="top-center" autoClose={3000} />
-      </Container>
-    );
-  }
+  return (
+    <Container>
+      <Seachbar onSubmit={handleFormSubmit} />
+      {/* <PixabayApi /> */}
+      {error && <h1>{error}</h1>}
+      <ImageGallery pictures={pictures} bigImage={bigImage} />
+      {isLoading && <Loader />}
+      {btnEnable && <Button onClick={loadMoreBtnClick} />}
+      {showModal && (
+        <Modal showModal={bigImage}>
+          <img src={largeImage} alt={imgTags} />
+        </Modal>
+      )}
+      <ToastContainer position="top-center" autoClose={3000} />
+    </Container>
+  );
 }
+
 App.propTypes = {
-  pictures: PropTypes.array,
+  // pictures: PropTypes.array,
   page: PropTypes.number,
   query: PropTypes.string,
   largeImage: PropTypes.string,
